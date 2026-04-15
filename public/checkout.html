@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>SwiftPay Checkout</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#020617] text-white flex items-center justify-center min-h-screen p-6">
+    <div class="max-w-md w-full p-10 bg-white/5 border border-white/10 rounded-[40px] shadow-2xl">
+        <div id="content">
+            <p class="text-blue-500 font-bold text-xs uppercase tracking-widest mb-2">Secure Payment Gateway</p>
+            <h1 id="iName" class="text-3xl font-bold mb-1">Loading...</h1>
+            <p class="text-gray-500 text-sm mb-8">Verified Merchant Payment</p>
+
+            <div class="bg-black/40 p-6 rounded-3xl mb-8 space-y-3">
+                <div class="flex justify-between text-gray-400 italic"><span>Total Amount</span><span id="iInr">₹0</span></div>
+                <div class="flex justify-between font-bold text-xl text-green-400 pt-3 border-t border-white/5">
+                    <span>To Pay (USDC)</span><span id="iUsdc">$0.00</span>
+                </div>
+            </div>
+
+            <button id="payButton" onclick="handlePay()" class="w-full bg-blue-600 py-5 rounded-2xl font-bold text-lg shadow-xl shadow-blue-600/20 hover:bg-blue-500 transition-all active:scale-95">
+                Confirm & Settle On-Chain
+            </button>
+            
+            <p id="loader" class="hidden mt-6 text-sm text-blue-400 animate-pulse text-center">Interacting with Solana Devnet...</p>
+        </div>
+
+        <div id="success" class="hidden text-center">
+            <div class="w-20 h-20 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">✓</div>
+            <h2 class="text-2xl font-bold mb-2">Settlement Complete</h2>
+            <p class="text-gray-400 text-sm mb-6">Funds have been bridged to the merchant's vault.</p>
+            <a id="explorer" target="_blank" class="text-blue-400 text-xs underline">View on Solana Explorer</a>
+        </div>
+    </div>
+
+    <script>
+        const tid = window.location.pathname.split('/').pop();
+        async function init() {
+            const r = await fetch(`/api/tx/${tid}`);
+            const data = await r.json();
+            document.getElementById('iName').innerText = data.itemName;
+            document.getElementById('iInr').innerText = "₹" + data.amountInr;
+            document.getElementById('iUsdc').innerText = "$" + data.amountUsdc + " USDC";
+            if(data.status === 'SETTLED') showSuccess(data.solanaHash);
+        }
+
+        async function handlePay() {
+            document.getElementById('payButton').classList.add('hidden');
+            document.getElementById('loader').classList.remove('hidden');
+            
+            const res = await fetch(`/api/settle/${tid}`, { method: 'POST' });
+            const result = await res.json();
+            
+            setTimeout(() => { showSuccess(result.explorerUrl); }, 2000);
+        }
+
+        function showSuccess(url) {
+            document.getElementById('content').classList.add('hidden');
+            document.getElementById('success').classList.remove('hidden');
+            if(url.includes('http')) document.getElementById('explorer').href = url;
+        }
+        init();
+    </script>
+</body>
+</html>
